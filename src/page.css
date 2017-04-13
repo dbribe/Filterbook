@@ -1,0 +1,6 @@
+.leftContainer {
+    left: "0 !important";
+    top: "0 !important";
+    position: "fixed !important";
+    background-color: "grey !important";
+}
