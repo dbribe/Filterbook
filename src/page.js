@@ -1,106 +1,82 @@
-// const extensionID;
-// const mainPort = chrome.runtime.connect(extensionID, {name: "page"});
-// mainPort.onMessage.addListener((event) => {});
-
-console.warn("GOT IT");
-const nameSet = new Set();
-
 const mainContainer = document.getElementById("mainContainer");
+// const myContainer = document.createElement("div")
 
 let cnt = 0;
 let totalTime = 0;
 
 const getPromise = () => {
     return new Promise((resolve, reject) => {
-        const element = mainContainer ? mainContainer.querySelector("[data-ftr]") : null;
-        if (!element) {
+        const elements = mainContainer ? mainContainer.querySelectorAll("[data-ftr]") : null;
+        if (!elements || !elements.length) {
             reject();
         } else {
-            valid(element).then(() => {
-                resolve({element: element, value: true});
-            }, (respone) => {
-                console.info(respone);
-                resolve({element: element, value: false});
+            const promises = [];
+            for (let element of elements) {
+                element.removeAttribute("data-ftr");
+                promises.push(valid(element));
+            }
+            Promise.all(promises).then((values) => {
+                for (let i = 0; i < values.length; i += 1) {
+                    if (!values[i]) {
+                        elements[i].parentNode.removeChild(elements[i]);
+                    }
+                }
+                resolve();
             });
         }
     });
 };
 
 const find = () => {
-    getPromise().then((response) => {
-        response.element.removeAttribute("data-ftr");
-        if (!response.value) {
-            // response.element.parentNode.removeChild(response.element);
-            response.element.display = "none";
-            response.element = null;
-        }
+    getPromise().then(() => {
         find();
     }, () => {
-        setTimeout(find, 3000);
+        setTimeout(find, 4000);
     });
 };
 
 const valid = (element) => {
     return new Promise((resolve, reject) => {
-        const nameElement = element.querySelector(".fwb.fcg>a");
-        if (nameElement) {
-            nameSet.add(nameElement.innerHTML);
-            if (nameElement.hasAttribute("data-hovercard") &&
-                nameElement.getAttribute("data-hovercard").contains("user")) {
-                // console.warn("User");
-                reject("user");
-            }
+        const nameElement = element.querySelector(".fwb.fcg>a") || element.querySelector(".fwn.fcg>.fcg>.fwb>a");
+        // debugger;
+        if (nameElement && nameElement.getAttribute("data-hovercard").contains("page")) {
+            resolve(false);
         }
 
         const spanBans = [
             " is now friends with ",
-            "Suggested Post",
+            "SuggestedPost",
             " liked ",
             " likes ",
-            // " like ",
             " commented ",
             " are now friends",
-            " was tagged in",
-            " reacted to",
-            "Popular Live video",
-            " replied to ",
-            " You May Like",
-            "People You May Know",
-            "Tell Us What You Think",
-            // "'s Birthday",
         ];
 
-        // if (element.querySelector(".fwn.fcg>.fcg>.fcb")) {
-        // console.warn("EZ");
-        // return false;
-        // }
-
-        // const spans = element.querySelectorAll("span.fwb, span._m8d, span.fcg");
         const spans = element.getElementsByTagName("span");
         for (let span of spans) {
             for (let spanBan of spanBans) {
                 if(span.innerText.contains(spanBan)) {
-                    reject(spanBan);
+                    resolve(false);
                 }
             }
         }
-
         const as = element.getElementsByTagName("a");
         for (let a of as) {
-            if (a.innerText == "Sponsored") {
-                reject("sponsored");
+            if (a.innerHTML == "Sponsored") {
+                resolve(false);
             }
         }
-        resolve();
+        resolve(true);
     });
 };
 
 find();
 
-window.nameSet = nameSet;
-
 // setInterval(() => {
-//     if (cnt >= 20) {
-//         console.info(totalTime / cnt);
+//     const elements = mainContainer.querySelectorAll("[data-ftr]");
+//     for (let element of elements) {
+//         if (!valid(element)) {
+//             element.parentNode.removeChild(element);
+//         }
 //     }
-// }, 5000);
+// }, 1000);
