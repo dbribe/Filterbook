@@ -10,7 +10,8 @@
         "default_popup": "popup.html"
     },
     "permissions": [
-        "activeTab"
+        "activeTab",
+        "tabs"
     ],
     "background": {
         "scripts": ["background.js"]
@@ -24,8 +25,8 @@
     }],
     "externally_connectable": {
         "matches": [
-            "http://facebook.com/*",
-            "https://facebook.com/*"
+            "http://facebook.com/",
+            "https://facebook.com/"
         ]
     },
     "web_accessible_resources": [

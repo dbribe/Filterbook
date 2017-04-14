@@ -4,3 +4,11 @@
     position: "fixed !important";
     background-color: "grey !important";
 }
+
+#sideNav {
+    display: none !important;
+}
+
+#rightCol {
+    display: none !important;
+}

@@ -2,132 +2,105 @@
 // const mainPort = chrome.runtime.connect(extensionID, {name: "page"});
 // mainPort.onMessage.addListener((event) => {});
 
-const uselessElements = ["#sideNav", "#rightCol"];
-
-setTimeout(() => {
-    for (let selector of uselessElements) {
-        const element = document.querySelector(selector);
-        element.parentNode.removeChild(element);
-    }
-});
-// document.getElementById("sideNav").style.display = "none";
-// document.getElementById("rightCol").style.display = "none";
-
-const containerStyle = {
-    marginLeft: "20px",
-    maxWidth: "500px",
-    display: "inline-block",
-};
-
-const leftContainer = document.createElement("div");
-Object.assign(leftContainer.style, containerStyle);
-
-const rightContainer = document.createElement("div");
-Object.assign(rightContainer.style, containerStyle, {
-    position: "absolute",
-});
-
-
-document.body.insertBefore(rightContainer, document.body.firstChild);
-document.body.insertBefore(leftContainer, rightContainer);
-
-let currentContainer = leftContainer;
+console.warn("GOT IT");
+const nameSet = new Set();
 
 const mainContainer = document.getElementById("mainContainer");
-// mainContainer.style.opacity = "0";
 
-// let stackElements = [];
+let cnt = 0;
+let totalTime = 0;
 
-// setInterval(() => {
-//     const elements = mainContainer.querySelectorAll("[data-ftr]");
-//     for (let element of elements) {
-//         element.removeAttribute("data-ftr");
-//         stackElements.push(element);
-//         // if (stackElements.length > 15) {
-//         //     break;
-//         // }
-//     }
+const getPromise = () => {
+    return new Promise((resolve, reject) => {
+        const element = mainContainer ? mainContainer.querySelector("[data-ftr]") : null;
+        if (!element) {
+            reject();
+        } else {
+            valid(element).then(() => {
+                resolve({element: element, value: true});
+            }, (respone) => {
+                console.info(respone);
+                resolve({element: element, value: false});
+            });
+        }
+    });
+};
 
-//     appendElements();
-// }, 1000);
-
-// let leftHeight = 0;
-// let rightHeight = 0;
-
-// const appendElements = () => {
-//     for (let element of stackElements) {
-
-//         // element.style.display = "none";
-//         // const myElement = document.createElement("div");
-//         // myElement.innerHTML = element.innerHTML;
-//         if (valid(element)) {
-//             if (leftContainer.offsetHeight <= rightContainer.offsetHeight) {
-//                 leftContainer.appendChild(element);
-//             } else {
-//                 rightContainer.appendChild(element);
-//             }
-
-//         } else {
-//             element.parentNode.removeChild(element);
-//             console.warn("kill");
-//         }
-//     }
-
-//     stackElements = [];
-// };
+const find = () => {
+    getPromise().then((response) => {
+        response.element.removeAttribute("data-ftr");
+        if (!response.value) {
+            // response.element.parentNode.removeChild(response.element);
+            response.element.display = "none";
+            response.element = null;
+        }
+        find();
+    }, () => {
+        setTimeout(find, 3000);
+    });
+};
 
 const valid = (element) => {
-    // if (element.querySelector("h5")) {
-    //     element.parentNode.removeChild(element);
-    //     return false;
-    // }
-    // if (element.querySelector(".fwn .fcg")) {
-    //     return false;
-    // }
-    const spanBans = [
-        " is now friends with ",
-        "SuggestedPost",
-        " liked ",
-        " likes ",
-        " commented ",
-        " are now friends",
-    ]
-    const spans = element.getElementsByTagName("span");
-    for (let span of spans) {
-        for (let spanBan of spanBans) {
-            if(span.innerText.contains(spanBan)) {
-                console.warn(spanBan);
-                return false;
+    return new Promise((resolve, reject) => {
+        const nameElement = element.querySelector(".fwb.fcg>a");
+        if (nameElement) {
+            nameSet.add(nameElement.innerHTML);
+            if (nameElement.hasAttribute("data-hovercard") &&
+                nameElement.getAttribute("data-hovercard").contains("user")) {
+                // console.warn("User");
+                reject("user");
             }
         }
-    }
-    const as = element.getElementsByTagName("a");
-    for (let a of as) {
-        if (a.innerHTML == "Sponsored") {
-            console.warn("Sponsored");
-            return false;
-        }
-    }
-    return true;
-}
 
-setInterval(() => {
-    // for (let element of leftContainer.children) {
-    //     if (!valid(element)) {
-    //         leftContainer.removeChild(element);
-    //         console.warn("kill-after");
-    //     }
-    // }
-    // for (let element of rightContainer.children) {
-    //     if (!valid(element)) {
-    //         rightContainer.removeChild(element);
-    //         console.warn("kill-after");
-    //     }
-    // }
-    const elements = mainContainer.querySelectorAll("[data-ftr]");
-    for (let element of elements) {
-        if (!valid(element)) {
-            element.parentNode.removeChild(element);
+        const spanBans = [
+            " is now friends with ",
+            "Suggested Post",
+            " liked ",
+            " likes ",
+            // " like ",
+            " commented ",
+            " are now friends",
+            " was tagged in",
+            " reacted to",
+            "Popular Live video",
+            " replied to ",
+            " You May Like",
+            "People You May Know",
+            "Tell Us What You Think",
+            // "'s Birthday",
+        ];
+
+        // if (element.querySelector(".fwn.fcg>.fcg>.fcb")) {
+        // console.warn("EZ");
+        // return false;
+        // }
+
+        // const spans = element.querySelectorAll("span.fwb, span._m8d, span.fcg");
+        const spans = element.getElementsByTagName("span");
+        for (let span of spans) {
+            for (let spanBan of spanBans) {
+                if(span.innerText.contains(spanBan)) {
+                    reject(spanBan);
+                }
+            }
         }
-    }
-}, 1000);
+
+        const as = element.getElementsByTagName("a");
+        for (let a of as) {
+            if (a.innerText == "Sponsored") {
+                reject("sponsored");
+            }
+        }
+        resolve();
+    });
+};
+
+find();
+
+window.nameSet = nameSet;
+
+// setInterval(() => {
+//     if (cnt >= 20) {
+//         console.info(totalTime / cnt);
+//     }
+// }, 5000);
