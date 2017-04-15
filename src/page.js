@@ -1,5 +1,6 @@
+const DEBUG = false;
+
 const mainContainer = document.getElementById("mainContainer");
-// const myContainer = document.createElement("div")
 
 let cnt = 0;
 let totalTime = 0;
@@ -37,46 +38,101 @@ const find = () => {
 
 const valid = (element) => {
     return new Promise((resolve, reject) => {
+        element = element.firstChild.firstChild || element;
         const nameElement = element.querySelector(".fwb.fcg>a") || element.querySelector(".fwn.fcg>.fcg>.fwb>a");
-        // debugger;
-        if (nameElement && nameElement.getAttribute("data-hovercard").contains("page")) {
-            resolve(false);
-        }
+        const name = nameElement && nameElement.innerText;
+        let solved = false;
 
-        const spanBans = [
-            " is now friends with ",
-            "SuggestedPost",
-            " liked ",
-            " likes ",
-            " commented ",
-            " are now friends",
-        ];
+        const solve = (value) => {
+            if (DEBUG) {
+                console.info(value, ": ", name, element);
+            }
+            solved = true;
+            if (value == "F" || value == "N") {
+                resolve(false);
+            } else {
+                resolve(true);
+            }
+        };
 
-        const spans = element.getElementsByTagName("span");
-        for (let span of spans) {
-            for (let spanBan of spanBans) {
-                if(span.innerText.contains(spanBan)) {
-                    resolve(false);
+        const check = () => {
+            if (nameElement && nameElement.getAttribute("data-hovercard").contains("user")) {
+                solve("F");
+            }
+
+            const spanBans = [
+                " is now friends with ",
+                "Suggested Post",
+                " liked ",
+                " likes ",
+                " like ",
+                " reacted to ",
+                " commented ",
+                " replied to ",
+                " are now friends",
+                " was tagged in",
+                "People You May Know",
+                "Popular Live video",
+                " You May Like",
+                "Tell Us What You Think",
+                "'s Birthday"
+            ];
+
+            const spans = element.getElementsByTagName("span");
+            for (let span of spans) {
+                for (let spanBan of spanBans) {
+                    if(span.innerText.contains(spanBan)) {
+                        solve("F");
+                        return;
+                    }
                 }
             }
-        }
-        const as = element.getElementsByTagName("a");
-        for (let a of as) {
-            if (a.innerHTML == "Sponsored") {
-                resolve(false);
+
+            const as = element.getElementsByTagName("a");
+            for (let a of as) {
+                if (a.innerHTML == "Sponsored") {
+                    solve("F");
+                    return;
+                }
             }
+
+            const divs = element.querySelectorAll("div._5g-l");
+            for (let div of divs) {
+                if (div.innerHTML.contains("You May Like")) {
+                    solve("F");
+                    return;
+                }
+            }
+        };
+
+        check();
+
+        if (solved) {
+            return;
         }
-        resolve(true);
+
+        if (!name) {
+            solve("N");
+        } else {
+            solve("T");
+        }
     });
 };
 
 find();
 
+const getMoreButton = () => {
+    let buttons = document.querySelectorAll("span.fsxl.fcg");
+    for (let button of buttons) {
+        if (button.innerText == "More Stories") {
+            return button;
+        }
+    }
+    return null;
+};
+
+const moreButton = getMoreButton();
+
 // setInterval(() => {
-//     const elements = mainContainer.querySelectorAll("[data-ftr]");
-//     for (let element of elements) {
-//         if (!valid(element)) {
-//             element.parentNode.removeChild(element);
-//         }
-//     }
-// }, 1000);
+//     moreButton.click();
+// }, 4000);

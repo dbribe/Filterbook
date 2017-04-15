@@ -5,15 +5,7 @@
 #rightCol {
     display: none !important;
 }
-
-/* #mainContainer { */
-/*     opacity: 0; */
-/* } */
-
-/* #myContainer { */
-/*     display: block; */
-/* } */
-
-/* #hiddenContainer { */
-/*     display: none !important; */
-/* } */
+#mainContainer [data-ftr] {
+    display: none;
+    opacity: 0;
+}
