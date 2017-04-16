@@ -1,6 +1,22 @@
-const DEBUG = false;
+const client = new XMLHttpRequest();
+let pageHTML;
+client.open('GET', chrome.extension.getURL("page.html"));
+client.onreadystatechange = () => {
+    if (client.responseText !== "") {
+        pageHTML = document.createElement("div");
+        pageHTML.id = "filterbook";
+        pageHTML.innerHTML = client.responseText;
+        if (!document.getElementById("filterbook")) {
+            document.body.appendChild(pageHTML);
+            initMenu();
+        }
+    }
+};
+client.send();
 
-const mainContainer = document.getElementById("mainContainer");
+const DEBUG = false;
+let ACTIVE = true;
+
 let filterStarted = false;
 
 let bannedTemplates = {};
@@ -8,19 +24,29 @@ let bannedPremadeGroups = [];
 
 const getPromise = () => {
     return new Promise((resolve, reject) => {
-        const elements = mainContainer ? mainContainer.querySelectorAll("[data-ftr]") : null;
+        const mainContainer = document.getElementById("mainContainer");
+        const elements = (ACTIVE && mainContainer) ? mainContainer.querySelectorAll("[data-ftr]") : null;
         if (!elements || !elements.length) {
             reject();
         } else {
+            let targets;
+            if (elements.length > 10) {
+                targets = [];
+                for (let i = 0; i < 10; i += 1) {
+                    targets.push(elements[i]);
+                }
+            } else {
+                targets = elements;
+            }
             const promises = [];
-            for (let element of elements) {
-                element.removeAttribute("data-ftr");
-                promises.push(valid(element));
+            for (let target of targets) {
+                target.removeAttribute("data-ftr");
+                promises.push(valid(target));
             }
             Promise.all(promises).then((values) => {
                 for (let i = 0; i < values.length; i += 1) {
                     if (!values[i]) {
-                        elements[i].parentNode.removeChild(elements[i]);
+                        targets[i].parentNode.removeChild(targets[i]);
                     }
                 }
                 resolve();
@@ -58,7 +84,7 @@ const valid = (element) => {
 
         const check = () => {
             for (let group of bannedPremadeGroups) {
-                if (nameElement && nameElement.getAttribute("data-hovercard").contains(group.parse)) {
+                if (nameElement && nameElement.getAttribute("data-hovercard").indexOf(group.parse) !== -1) {
                     solve("F");
                     return;
                 }
@@ -66,9 +92,13 @@ const valid = (element) => {
             for (let parser in bannedTemplates) {
                 if (bannedTemplates.hasOwnProperty(parser)) {
                     const targets = element.querySelectorAll(parser);
+                    const strings = [];
+                    for (let target of targets) {
+                        strings.push(String(target.innerHTML));
+                    }
                     for (let template of bannedTemplates[parser]) {
-                        for (let target of targets) {
-                            if (target.innerText.contains(template.parse)) {
+                        for (let string of strings) {
+                            if (string.indexOf(template.parse) !== -1) {
                                 solve("F");
                                 return;
                             }
@@ -258,11 +288,21 @@ const getDefaultTemplate = () => {
                 value: "on",
             }, {
                 label: "Pages",
-                parse: "pages",
+                parse: "page",
                 value: "on",
             }
         ], groups: []
     };
 };
 
-initMenu();
+setInterval(() => {
+    const shouldBeActive = document.getElementById("pagelet_composer");
+    if (!shouldBeActive && ACTIVE) {
+        ACTIVE = false;
+        pageHTML = document.getElementById("filterbook");
+        document.body.removeChild(pageHTML);
+    } else if (shouldBeActive && !ACTIVE) {
+        ACTIVE = true;
+        document.body.appendChild(pageHTML);
+    }
+}, 1000);

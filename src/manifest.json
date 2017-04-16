@@ -18,10 +18,12 @@
     },
     "content_scripts": [{
         "matches": [
-            "http://*/*",
-            "https://*/*"
+            "http://www.facebook.com/*",
+            "https://www.facebook.com/*",
+            "http://facebook.com/*",
+            "https://facebook.com/*"
         ],
-        "js": ["injector.js"]
+        "js": ["page.js"]
     }],
     "externally_connectable": {
         "matches": [
@@ -30,8 +32,6 @@
         ]
     },
     "web_accessible_resources": [
-        "page.js",
-        "page.css",
         "page.html"
     ]
 }
