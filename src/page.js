@@ -140,17 +140,8 @@ const moreButton = getMoreButton();
 
 let config;
 
-const changeState = (label, element) => {
-    const values = ["off", "on", "off"];
-    label.classList.remove(element.value);
-    element.value = values[values.indexOf(element.value) + 1];
-    label.classList.add(element.value);
-    config = config;
-    saveConfig();
-};
-
 const getConfig = () => {
-    return JSON.parse(localStorage.getItem("Filterbook")) || getDefaultTemplate();
+    return getDefaultTemplate() || JSON.parse(localStorage.getItem("Filterbook")) || getDefaultTemplate();
 };
 
 const saveConfig = () => {
@@ -176,23 +167,145 @@ const saveConfig = () => {
     }
 };
 
+const changeState = (label, element) => {
+    const values = ["off", "on", "off"];
+    label.classList.remove(element.value);
+    element.value = values[values.indexOf(element.value) + 1];
+    label.classList.add(element.value);
+    saveConfig();
+};
+
+const createLabel = (element, container) => {
+    const label = document.createElement("label");
+    label.className = "label " + element.value;
+    label.innerHTML = element.label;
+    label.onclick = (event) => {
+        event.stopPropagation();
+        event.preventDefault();
+        changeState(label, element);
+    };
+    document.getElementById(container).appendChild(label);
+};
+
+const changeGroupState = (label, element) => {
+    const values = ["off", "default", "on", "off"];
+    label.classList.remove(element.value);
+    element.value = values[values.indexOf(element.value) + 1];
+    label.classList.add(element.value);
+    saveConfig();
+};
+
+const addPrivateGroup = (label) => {
+    config.privateGroups.push({
+        value: "default",
+        label: label,
+        elements: [],
+    });
+    saveConfig();
+    return config.privateGroups[config.privateGroups.length - 1];
+};
+
+const removePrivateGroup = (group) => {
+    config.privateGroups.splice(config.privateGroups.indexOf(group), 1);
+    saveConfig();
+};
+
+const removePrivateGroupChild = (element, childName) => {
+    element.elements.splice(element.elements.indexOf(childName), 1);
+    saveConfig();
+};
+
+const addPrivateGroupChild = (element, childName) => {
+    element.elements.splice(0, 0, childName);
+    saveConfig();
+};
+
+const createChild = (element, childName) => {
+    const childLabel = document.createElement("label");
+    childLabel.innerHTML = childName;
+    childLabel.className = "label";
+    const childDeleteSpan = document.createElement("span");
+    childDeleteSpan.className = "delete";
+    childDeleteSpan.onclick = (event) => {
+        event.stopPropagation();
+        event.preventDefault();
+        childLabel.parentNode.removeChild(childLabel);
+        removePrivateGroupChild(element, childName);
+    };
+    childLabel.appendChild(childDeleteSpan);
+    return childLabel;
+};
+
+const createGroupLabel = (element) => {
+    const editSpan = document.createElement("span");
+    editSpan.className = "edit";
+    const deleteSpan = document.createElement("span");
+    deleteSpan.className = "delete";
+    deleteSpan.onclick = (event) => {
+        event.stopPropagation();
+        event.preventDefault();
+        label.parentNode.removeChild(label);
+        removePrivateGroup(element);
+    }
+    const label = document.createElement("label");
+    label.className = "label " + element.value;
+    label.innerHTML = element.label;
+    label.onclick = (event) => {
+        event.stopPropagation();
+        event.preventDefault();
+        changeGroupState(label, element);
+    };
+    document.getElementById("privateGroups").appendChild(label);
+    label.appendChild(editSpan);
+    label.appendChild(deleteSpan);
+    const elementsPopup = document.createElement("div");
+    elementsPopup.className = "popup";
+    label.appendChild(elementsPopup);
+    for (let childName of element.elements) {
+        elementsPopup.appendChild(createChild(element, childName));
+    }
+    const addMember = document.createElement("label");
+    addMember.className = "label";
+    addMember.innerHTML = "Add member";
+    addMember.onclick = (event) => {
+        event.stopPropagation();
+        event.preventDefault();
+        const childName = prompt("Name please?");
+        elementsPopup.insertBefore(createChild(element, childName), elementsPopup.firstChild);
+        addPrivateGroupChild(element, childName);
+    };
+    elementsPopup.appendChild(addMember);
+};
+
 const initMenu = () => {
     config = getConfig();
     saveConfig();
 
     for (let prop in config) {
-        if (config.hasOwnProperty(prop)) {
+        if (config.hasOwnProperty(prop) && prop !== "privateGroups") {
             for (let element of config[prop]) {
-                const label = document.createElement("label");
-                label.className = "label " + element.value;
-                label.innerHTML = element.label;
-                document.getElementById(prop).appendChild(label);
-                label.addEventListener("click", (event) => {
-                    event.stopPropagation();
-                    event.preventDefault();
-                    changeState(label, element);
-                });
+                createLabel(element, prop);
             }
+        }
+    }
+
+    for (let element of config.privateGroups) {
+        createGroupLabel(element);
+    }
+
+    document.getElementById("addGroup").onclick = (event) => {
+        event.preventDefault();
+        event.stopPropagation();
+        const groupName = prompt("Name please?");
+        createGroupLabel(addPrivateGroup(groupName));
+    };
+
+    for (let prop in config) {
+        if (config.hasOwnProperty(prop)) {
+            debugger;
+            document.getElementById(prop + "Header").onclick = () => {
+                document.getElementById(prop).classList.toggle("hidden_elem");
+            };
         }
     }
 };
@@ -291,7 +404,7 @@ const getDefaultTemplate = () => {
                 parse: "page",
                 value: "on",
             }
-        ], groups: []
+        ], privateGroups: []
     };
 };
 
