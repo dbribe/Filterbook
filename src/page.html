@@ -1,10 +1,10 @@
-<h3 id="templatesHeader">Templates</h3>
-<div id="templates" class="groupList"></div>
-<h3 id="premadeGroupsHeader">Premade groups</h3>
-<div id="premadeGroups" class="groupList"></div>
-<h3 id="privateGroupsHeader">Private groups</h3>
+<h3 id="templatesHeader" title="Toggle which templates you want to filter in your newsfeed (red means it doesn't appear))">Templates</h3>
+<div id="templates" class="groupList casual"></div>
+<h3 id="premadeGroupsHeader" title="Toggle which groups you want to see in your newsfeed (red means it won't show, and blue means it will))">Premade groups</h3>
+<div id="premadeGroups" class="groupList casual"></div>
+<h3 id="privateGroupsHeader" title="Create your own private groups. A private group should contain names of pages/users. If a group is blue, those elements' posts will surely appear. If it is red, they will surely not appear. And if it is grey, then the group won't influence the newsfeed.">Private groups</h3>
 <div id="privateGroups" class="groupList">
-    <label class="label" id="addGroup">Add Group</label>
+    <label class="label" id="addGroup" title="Add a new group and give it a name. Inside a group in order to add members you can also type more of them separated by comma (,).">Add Group</label>
 </div>
 
 
@@ -27,16 +27,27 @@
  }
 
  #filterbook {
-     z-index: 9999;
+     z-index: 400;
      position: fixed;
      top: 50px;
      left: 10px;
      max-width: 250px;
+     background-color: rgba(0, 0, 0, 0.1);
+     border: 1px solid grey;
+     border-radius: 6px;
+ }
+
+ #filterbook h3 {
+     background-color: rgba(0, 0, 0, .7);
+     padding: 4px;
+     color: white;
+     text-align: center;
+     cursor: pointer;
  }
 
  #filterbook label.label {
      user-select: none;
-     font-weight: bold;
+     /* font-weight: bold; */
      border: 0.1em solid;
      padding: 0.07em 0.4em;
      border-radius: 0.5em;
@@ -47,26 +58,59 @@
      display: inline-block;
      touch-action: manipulation;
      font-size: 10px;
-     background-color: rgba(119, 119, 119, 1);
-     /* border-color: rgba(103, 103, 103, 1); */
-     border-color: "rgb(255, 255, 255)";
-     color: rgba(255, 255, 255, 1);
-     margin: 2px;
+     background-color: rgb(255, 255, 255);
+     border-color: rgb(70, 70, 70);
+     color: rgb(70, 70, 70);
+     margin: 0.1em;
+     transition: all ease 0.2s;
+ }
+
+ #filterbook label.label:hover {
+     background-color: rgb(70, 70, 70);
+     border-color: rgb(70, 70, 70);
+     color: rgb(255, 255, 255);
  }
 
  #filterbook label.label.on {
+     border-color: rgb(4, 114, 198);
+     color: rgb(4, 114, 198);
+ }
+
+ #filterbook label.label.on:hover {
      background-color: rgb(4, 114, 198);
-     /* border-color: rgb(0, 86, 152); */
+     border-color: rgb(4, 114, 198);
+     color: rgb(255, 255, 255);
  }
 
  #filterbook label.label.off {
+     border-color: rgb(200, 50, 50);
+     color: rgb(200, 50, 50);
+ }
+
+ #filterbook label.label.off:hover {
      background-color: rgb(200, 50, 50);
-     /* border-color: rgb(150, 33, 33); */
+     border-color: rgb(200, 50, 50);
+     color: rgb(255, 255, 255);
  }
- #filterbook span.edit:before {
-     content: "E";
- }
+
  #filterbook span.delete:before {
-     content: "D";
+     content: "X";
+ }
+
+ #filterbook span.delete {
+     border: 1px solid;
+     padding: 0px 3px;
+     margin-left: 2px;
+     border-radius: 4px;
+ }
+
+ #filterbook #templates label.label {
+     display: table;
+     text-align: left;
+ }
+
+ #filterbook #privateGroups .label {
+     display: table;
+     text-align: left;
  }
 </style>

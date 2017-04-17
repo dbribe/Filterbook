@@ -21,6 +21,10 @@ let filterStarted = false;
 
 let bannedTemplates = {};
 let bannedPremadeGroups = [];
+let privateGroups = {
+    on: new Set(),
+    off: new Set(),
+};
 
 const getPromise = () => {
     return new Promise((resolve, reject) => {
@@ -83,6 +87,16 @@ const valid = (element) => {
         };
 
         const check = () => {
+            if (name) {
+                if (privateGroups.on.has(name)) {
+                    solve("T");
+                    return;
+                } else if (privateGroups.off.has(name)) {
+                    solve("F");
+                    return;
+                }
+            }
+
             for (let group of bannedPremadeGroups) {
                 if (nameElement && nameElement.getAttribute("data-hovercard").indexOf(group.parse) !== -1) {
                     solve("F");
@@ -134,14 +148,10 @@ const getMoreButton = () => {
 
 const moreButton = getMoreButton();
 
-// setInterval(() => {
-//     moreButton.click();
-// }, 4000);
-
 let config;
 
 const getConfig = () => {
-    return getDefaultTemplate() || JSON.parse(localStorage.getItem("Filterbook")) || getDefaultTemplate();
+    return JSON.parse(localStorage.getItem("Filterbook")) || getDefaultTemplate();
 };
 
 const saveConfig = () => {
@@ -159,6 +169,17 @@ const saveConfig = () => {
     for (let group of config.premadeGroups) {
         if (group.value === "off") {
             bannedPremadeGroups.push(group);
+        }
+    }
+    privateGroups = {
+        on: new Set(),
+        off: new Set(),
+    };
+    for (let group of config.privateGroups) {
+        if (group.value !== "default") {
+            for (let element of group.elements) {
+                privateGroups[group.value].add(element);
+            }
         }
     }
     if (!filterStarted) {
@@ -246,7 +267,7 @@ const createGroupLabel = (element) => {
         event.preventDefault();
         label.parentNode.removeChild(label);
         removePrivateGroup(element);
-    }
+    };
     const label = document.createElement("label");
     label.className = "label " + element.value;
     label.innerHTML = element.label;
@@ -270,9 +291,14 @@ const createGroupLabel = (element) => {
     addMember.onclick = (event) => {
         event.stopPropagation();
         event.preventDefault();
-        const childName = prompt("Name please?");
-        elementsPopup.insertBefore(createChild(element, childName), elementsPopup.firstChild);
-        addPrivateGroupChild(element, childName);
+        const childNames = prompt("Name please?");
+        if (childNames) {
+            childNames.split(",").forEach((childName) => {
+                childName = childName.trim();
+                elementsPopup.insertBefore(createChild(element, childName), elementsPopup.firstChild);
+                addPrivateGroupChild(element, childName);
+            });
+        }
     };
     elementsPopup.appendChild(addMember);
 };
@@ -297,12 +323,13 @@ const initMenu = () => {
         event.preventDefault();
         event.stopPropagation();
         const groupName = prompt("Name please?");
-        createGroupLabel(addPrivateGroup(groupName));
+        if (groupName) {
+            createGroupLabel(addPrivateGroup(groupName));
+        }
     };
 
     for (let prop in config) {
         if (config.hasOwnProperty(prop)) {
-            debugger;
             document.getElementById(prop + "Header").onclick = () => {
                 document.getElementById(prop).classList.toggle("hidden_elem");
             };
