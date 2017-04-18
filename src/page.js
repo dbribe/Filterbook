@@ -21,7 +21,7 @@ let filterStarted = false;
 
 let bannedTemplates = {};
 let bannedPremadeGroups = [];
-let privateGroups = {
+let groups = {
     on: new Set(),
     off: new Set(),
 };
@@ -88,10 +88,10 @@ const valid = (element) => {
 
         const check = () => {
             if (name) {
-                if (privateGroups.on.has(name)) {
+                if (groups.on.has(name)) {
                     solve("T");
                     return;
-                } else if (privateGroups.off.has(name)) {
+                } else if (groups.off.has(name)) {
                     solve("F");
                     return;
                 }
@@ -171,14 +171,14 @@ const saveConfig = () => {
             bannedPremadeGroups.push(group);
         }
     }
-    privateGroups = {
+    groups = {
         on: new Set(),
         off: new Set(),
     };
-    for (let group of config.privateGroups) {
+    for (let group of config.groups) {
         if (group.value !== "default") {
             for (let element of group.elements) {
-                privateGroups[group.value].add(element);
+                groups[group.value].add(element);
             }
         }
     }
@@ -188,250 +188,402 @@ const saveConfig = () => {
     }
 };
 
-const changeState = (label, element) => {
-    const values = ["off", "on", "off"];
-    label.classList.remove(element.value);
-    element.value = values[values.indexOf(element.value) + 1];
-    label.classList.add(element.value);
-    saveConfig();
-};
-
-const createLabel = (element, container) => {
-    const label = document.createElement("label");
-    label.className = "label " + element.value;
-    label.innerHTML = element.label;
-    label.onclick = (event) => {
-        event.stopPropagation();
-        event.preventDefault();
-        changeState(label, element);
-    };
-    document.getElementById(container).appendChild(label);
-};
-
-const changeGroupState = (label, element) => {
-    const values = ["off", "default", "on", "off"];
-    label.classList.remove(element.value);
-    element.value = values[values.indexOf(element.value) + 1];
-    label.classList.add(element.value);
-    saveConfig();
-};
-
-const addPrivateGroup = (label) => {
-    config.privateGroups.push({
-        value: "default",
-        label: label,
-        elements: [],
-    });
-    saveConfig();
-    return config.privateGroups[config.privateGroups.length - 1];
-};
-
-const removePrivateGroup = (group) => {
-    config.privateGroups.splice(config.privateGroups.indexOf(group), 1);
-    saveConfig();
-};
-
-const removePrivateGroupChild = (element, childName) => {
-    element.elements.splice(element.elements.indexOf(childName), 1);
-    saveConfig();
-};
-
-const addPrivateGroupChild = (element, childName) => {
-    element.elements.splice(0, 0, childName);
-    saveConfig();
-};
-
-const createChild = (element, childName) => {
-    const childLabel = document.createElement("label");
-    childLabel.innerHTML = childName;
-    childLabel.className = "label";
-    const childDeleteSpan = document.createElement("span");
-    childDeleteSpan.className = "delete";
-    childDeleteSpan.onclick = (event) => {
-        event.stopPropagation();
-        event.preventDefault();
-        childLabel.parentNode.removeChild(childLabel);
-        removePrivateGroupChild(element, childName);
-    };
-    childLabel.appendChild(childDeleteSpan);
-    return childLabel;
-};
-
-const createGroupLabel = (element) => {
-    const editSpan = document.createElement("span");
-    editSpan.className = "edit";
-    const deleteSpan = document.createElement("span");
-    deleteSpan.className = "delete";
-    deleteSpan.onclick = (event) => {
-        event.stopPropagation();
-        event.preventDefault();
-        label.parentNode.removeChild(label);
-        removePrivateGroup(element);
-    };
-    const label = document.createElement("label");
-    label.className = "label " + element.value;
-    label.innerHTML = element.label;
-    label.onclick = (event) => {
-        event.stopPropagation();
-        event.preventDefault();
-        changeGroupState(label, element);
-    };
-    document.getElementById("privateGroups").appendChild(label);
-    label.appendChild(editSpan);
-    label.appendChild(deleteSpan);
-    const elementsPopup = document.createElement("div");
-    elementsPopup.className = "popup";
-    label.appendChild(elementsPopup);
-    for (let childName of element.elements) {
-        elementsPopup.appendChild(createChild(element, childName));
-    }
-    const addMember = document.createElement("label");
-    addMember.className = "label";
-    addMember.innerHTML = "Add member";
-    addMember.onclick = (event) => {
-        event.stopPropagation();
-        event.preventDefault();
-        const childNames = prompt("Name please?");
-        if (childNames) {
-            childNames.split(",").forEach((childName) => {
-                childName = childName.trim();
-                elementsPopup.insertBefore(createChild(element, childName), elementsPopup.firstChild);
-                addPrivateGroupChild(element, childName);
-            });
+const addChild = (element, children) => {
+    if (typeof children === "string") {
+        element.innerHTML += children;
+    } else if (children.constructor === Array) {
+        for (let child of children) {
+            addChild(element, child);
         }
-    };
-    elementsPopup.appendChild(addMember);
+    } else {
+        element.appendChild(children);
+    }
 };
+
+const createDOMElement = (type, classes, content) => {
+    const element = document.createElement(type);
+    element.className = classes;
+    addChild(element, content);
+    return element;
+};
+
+class Menu {
+    constructor(options, parent) {
+        this.configRef = options;
+        this.createNode(parent);
+    }
+
+    getDescription() {}
+
+    getName() {}
+
+    getListChildren() {}
+
+    addChildrenListeners() {}
+
+    createNode(parent) {
+        this.title = createDOMElement("span", "title", this.getName());
+        this.title.title = this.getDescription();
+        this.list = createDOMElement("div", "list collapsed", this.getListChildren());
+        this.listContainer = createDOMElement("div", "listContainer", this.list);
+        this.node = createDOMElement("div", "menu", [this.title, this.listContainer]);
+        this.addListeners();
+        if (parent) {
+            parent.appendChild(this.node);
+        }
+    }
+
+    addListeners() {
+        this.addChildrenListeners();
+        this.title.addEventListener("click", () => {
+            this.list.classList.toggle("collapsed");
+        });
+    }
+}
+
+class TemplatesMenu extends Menu {
+    getName() {
+        return "Templates";
+    }
+
+    getDescription() {
+        return "Toggle which templates you want to filter in your newsfeed (red means it won't appear))";
+    }
+
+    getListChildren() {
+        const children = [];
+        for (let child of this.configRef) {
+            children.push(new Label(child).node);
+        }
+        return children;
+    }
+}
+
+class PremadeGroupsMenu extends Menu {
+    getName() {
+        return "Premade Groups";
+    }
+
+    getDescription() {
+        return "Toggle which groups you want to see in your newsfeed (red means it won't show, and blue means it will))";
+    }
+
+    getListChildren() {
+        const children = [];
+        for (let child of this.configRef) {
+            const label = new Label(child);
+            children.push(label.node);
+        }
+        return children;
+    }
+}
+
+class GroupsMenu extends Menu {
+    getName() {
+        return "Groups";
+    }
+
+    getDescription() {
+        return "Create your own private groups. A private group should contain names of pages/users. If a group is blue, those elements' posts will surely appear. If it is red, they will surely not appear. And if it is grey, then the group won't influence the newsfeed.";
+    }
+
+    getListChildren() {
+        const children = [];
+        for (let child of this.configRef) {
+            const group = new Group(child);
+            children.push(group.node);
+        }
+        this.addGroupButton = createDOMElement("span", "button add", "Add Group");
+        children.push(this.addGroupButton);
+        return children;
+    }
+
+    addChildrenListeners() {
+        this.addGroupButton.addEventListener("click", () => {
+            let name = prompt("Create new group:");
+            if (!name || name === "") {
+                name = "Default group " + Group.getCounter();
+            }
+            const group = new Group({name: name, value: "default", elements: []}, this.list);
+        });
+    }
+}
+
+class Label {
+    constructor(options, parent) {
+        this.configRef = options;
+        this.createNode(parent);
+    }
+
+    createNode(parent) {
+        this.node = createDOMElement("label", "label " + this.configRef.value, this.configRef.name);
+        this.addListeners();
+        if (parent) {
+            parent.appendChild(this.node);
+        }
+    }
+
+    changeValue() {
+        const values = ["on", "off", "on"];
+        const oldValue = this.configRef.value;
+        const newValue = values[values.indexOf(this.configRef.value) + 1];
+        this.configRef.value = newValue;
+        saveConfig();
+        this.node.classList.replace(oldValue, newValue);
+    }
+
+    addListeners() {
+        this.node.addEventListener("click", () => {
+            this.changeValue();
+        });
+    }
+}
+
+class GroupChild {
+    constructor(options, parent) {
+        this.parent = parent;
+        this.name = options.name;
+        this.group = options.group;
+        this.register(options);
+    }
+
+    register(options) {
+        if (this.group.elements.indexOf(this.name) === -1) {
+            this.group.elements.push(this.name);
+            saveConfig();
+        }
+        this.createNode(this.parent);
+    }
+
+    createNode(parent) {
+        this.deleteButton = createDOMElement("span", "button delete", "X");
+        this.node = createDOMElement("label", "childLabel", [this.name, this.deleteButton]);
+        this.addListeners();
+        if (parent) {
+            parent.appendChild(this.node);
+        }
+    }
+
+    addListeners() {
+        this.deleteButton.addEventListener("click", () => {
+            this.remove();
+        });
+    }
+
+    remove() {
+        this.node.parentNode.removeChild(this.node);
+        this.group.elements.splice(this.group.elements.indexOf(this.name), 1);
+        saveConfig();
+        delete(this);
+    }
+}
+
+class Group {
+    static getCounter() {
+        if (!this.constructor.counter) {
+            this.constructor.counter = 1;
+        } else {
+            this.constructor.counter += 1;
+        }
+        return this.constructor.counter;
+    }
+
+    constructor(options, parent) {
+        this.parent = parent;
+        this.register(options);
+    }
+
+    register(options) {
+        this.configRef = options;
+        if (config.groups.indexOf(options) === -1) {
+            config.groups.push(this.configRef);
+            saveConfig();
+        }
+        this.createNode(this.parent);
+    }
+
+    createNode(parent) {
+        this.nameSpan = createDOMElement("span", "name", this.configRef.name);
+        this.deleteButton = createDOMElement("span", "button delete", "Delete");
+        this.renameButton = createDOMElement("span", "button rename", "Rename");
+        this.expandButton = createDOMElement("span", "button expand", "Expand");
+        this.addButton = createDOMElement("span", "button add", "Add");
+        const listChildren = [];
+        for (let childName of this.configRef.elements) {
+            listChildren.push(new GroupChild({name: childName, group: this.configRef}).node);
+        }
+        this.list = createDOMElement("div", "list collapsed", listChildren);
+        this.listContainer = createDOMElement("div", "listContainer", this.list);
+        this.node = createDOMElement("div", "group " + this.configRef.value, [this.nameSpan,
+             this.deleteButton, this.renameButton,  this.addButton, this.expandButton, this.listContainer]);
+        this.addListeners();
+        if (parent) {
+            parent.appendChild(this.node);
+        }
+    }
+
+    changeValue() {
+        const values = ["default", "on", "off", "default"];
+        const oldValue = this.configRef.value;
+        const newValue = values[values.indexOf(this.configRef.value) + 1];
+        this.configRef.value = newValue;
+        saveConfig();
+        this.node.classList.replace(oldValue, newValue);
+    }
+
+    addListeners() {
+        this.nameSpan.addEventListener("click", () => {
+            this.changeValue();
+        });
+        this.deleteButton.addEventListener("click", () => {
+            this.remove();
+        });
+        this.renameButton.addEventListener("click", () => {
+            const name = prompt("Rename group:");
+            if (name) {
+                this.configRexf.name = name;
+                saveConfig();
+                this.nameSpan.innerHTML = name;
+            }
+        });
+        this.expandButton.addEventListener("click", () => {
+            if (this.list.classList.contains("collapsed")) {
+                this.list.classList.remove("collapsed");
+                this.expandButton.innerHTML = "Collapse";
+            } else {
+                this.list.classList.add("collapsed");
+                this.expandButton.innerHTML = "Expand";
+            }
+        });
+        this.addButton.addEventListener("click", () => {
+            const names = prompt("Add page(s)) / user(s) to group (separated by comma):");
+            if (names) {
+                names.split(",").forEach((name) => {
+                    name = name.trim();
+                    if (name !== "" && this.configRef.elements.indexOf(name) === -1) {
+                        const child = new GroupChild({name: name, group: this.configRef}, this.list);
+                    }
+                });
+            }
+        });
+    }
+
+    remove() {
+        this.node.parentNode.removeChild(this.node);
+        config.groups.splice(config.groups.indexOf(this.configRef), 1);
+        saveConfig();
+        delete(this);
+    }
+}
 
 const initMenu = () => {
     config = getConfig();
     saveConfig();
 
-    for (let prop in config) {
-        if (config.hasOwnProperty(prop) && prop !== "privateGroups") {
-            for (let element of config[prop]) {
-                createLabel(element, prop);
-            }
-        }
-    }
+    const menuContainer = document.getElementById("filterbook");
 
-    for (let element of config.privateGroups) {
-        createGroupLabel(element);
-    }
+    const templatesMenu = new TemplatesMenu(config.templates, menuContainer);
 
-    document.getElementById("addGroup").onclick = (event) => {
-        event.preventDefault();
-        event.stopPropagation();
-        const groupName = prompt("Name please?");
-        if (groupName) {
-            createGroupLabel(addPrivateGroup(groupName));
-        }
-    };
+    const premadeGroupsMenu = new PremadeGroupsMenu(config.premadeGroups, menuContainer);
 
-    for (let prop in config) {
-        if (config.hasOwnProperty(prop)) {
-            document.getElementById(prop + "Header").onclick = () => {
-                document.getElementById(prop).classList.toggle("hidden_elem");
-            };
-        }
-    }
+    const groupsMenu = new GroupsMenu(config.groups, menuContainer);
 };
 
 const getDefaultTemplate = () => {
     return {
         templates: [
             {
-                label: "X is now friends with Y",
+                name: "X is now friends with Y",
                 parse: " is now friends with ",
                 selector: "span",
                 value: "on",
             }, {
-                label: "X and Y are now friends",
+                name: "X and Y are now friends",
                 parse: " are now friends",
                 selector: "span",
                 value: "on",
             }, {
-                label: "Suggested Post",
+                name: "Suggested Post",
                 parse: "Suggested Post",
                 selector: "span",
                 value: "on",
             }, {
-                label: "X liked Y",
+                name: "X liked Y",
                 parse: " liked ",
                 selector: "span",
                 value: "on",
             }, {
-                label: "X likes Y",
+                name: "X likes Y",
                 parse: " likes ",
                 selector: "span",
                 value: "on",
             }, {
-                label: "X and Y like Z",
+                name: "X and Y like Z",
                 parse: " like ",
                 selector: "span",
                 value: "on",
             }, {
-                label: "X reacted to Y",
+                name: "X reacted to Y",
                 parse: " reacted to ",
                 selector: "span",
                 value: "on",
             }, {
-                label: "X commented on Y",
+                name: "X commented on Y",
                 parse: " commented on ",
                 selector: "span",
                 value: "on",
             }, {
-                label: "X replied to Y",
+                name: "X replied to Y",
                 parse: " replied to ",
                 selector: "span",
                 value: "on",
             }, {
-                label: "X was tagged in Y",
+                name: "X was tagged in Y",
                 parse: "was tagged in",
                 selector: "span",
                 value: "on",
             }, {
-                label: "People You May Know",
+                name: "People You May Know",
                 parse: "People You May Know",
                 selector: "span",
                 value: "on",
             }, {
-                label: "Popular Live Video",
+                name: "Popular Live Video",
                 parse: "Popular Live Video",
                 selector: "span",
                 value: "on",
             }, {
-                label: "You May Like",
+                name: "You May Like",
                 parse: "You May Like",
                 selector: "span, div._5g-l",
                 value: "on",
             }, {
-                label: "Tell Us What You Think",
+                name: "Tell Us What You Think",
                 parse: "Tell Us What You Think",
                 selector: "span",
                 value: "on",
             }, {
-                label: "X's Birthday",
+                name: "X's Birthday",
                 parse: "'s Birthday",
                 selector: "span",
                 value: "on",
             }, {
-                label: "Sponsored",
+                name: "Sponsored",
                 parse: "Sponsored",
                 selector: "a",
                 value: "on",
             }
         ], premadeGroups: [
             {
-                label: "Users",
+                name: "Users",
                 parse: "user",
                 value: "on",
             }, {
-                label: "Pages",
+                name: "Pages",
                 parse: "page",
                 value: "on",
             }
-        ], privateGroups: []
+        ], groups: []
     };
 };
 

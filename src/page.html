@@ -1,21 +1,50 @@
-<h3 id="templatesHeader" title="Toggle which templates you want to filter in your newsfeed (red means it doesn't appear))">Templates</h3>
-<div id="templates" class="groupList casual"></div>
-<h3 id="premadeGroupsHeader" title="Toggle which groups you want to see in your newsfeed (red means it won't show, and blue means it will))">Premade groups</h3>
-<div id="premadeGroups" class="groupList casual"></div>
-<h3 id="privateGroupsHeader" title="Create your own private groups. A private group should contain names of pages/users. If a group is blue, those elements' posts will surely appear. If it is red, they will surely not appear. And if it is grey, then the group won't influence the newsfeed.">Private groups</h3>
-<div id="privateGroups" class="groupList">
-    <label class="label" id="addGroup" title="Add a new group and give it a name. Inside a group in order to add members you can also type more of them separated by comma (,).">Add Group</label>
+<div class="hidden_elem">
+    <div class="menu">
+        <span class="title"></span>
+        <div class="listContainer">
+            <div class="list collapsed">
+                <span class="button add"></span>
+            </div>
+        </div>
+    </div>
+
+    <label class="label"></label>
+
+    <label class="childLabel">
+        Name
+        <span class="button delete">X</span>
+    </label>
+
+    <div class="group">
+        <span class="name">Name</span>
+        <span class="button delete">Delete</span>
+        <span class="button rename">Rename</span>
+        <span class="button expand"><</span>
+        <span class="button add">Add Member</span>
+        <select class="select">
+            <option value="on">Always appear</option>
+            <option value="off">Never appear</option>
+            <option value="default">Default</option>
+        </select>
+        <div class="listContainer">
+            <div class="list collapsed"></div>
+        </div>
+    </div>
 </div>
-
-
 
 <style>
  #sideNav {
-     display: none !important;
+     /* display: none !important; */
+     opacity: 0 !important;
+     visibility: none !important;
+     pointer-events: none;
  }
 
  #rightCol {
-     display: none !important;
+     /* display: none !important; */
+     opacity: 0 !important;
+     visibility: none !important;
+     pointer-events: none;
  }
  #mainContainer [data-ftr] {
      display: none;
@@ -93,10 +122,6 @@
      color: rgb(255, 255, 255);
  }
 
- #filterbook span.delete:before {
-     content: "X";
- }
-
  #filterbook span.delete {
      border: 1px solid;
      padding: 0px 3px;
@@ -109,7 +134,7 @@
      text-align: left;
  }
 
- #filterbook #privateGroups .label {
+ #filterbook #groups .label {
      display: table;
      text-align: left;
  }
