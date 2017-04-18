@@ -87,22 +87,6 @@ const valid = (element) => {
         };
 
         const check = () => {
-            if (name) {
-                if (groups.on.has(name)) {
-                    solve("T");
-                    return;
-                } else if (groups.off.has(name)) {
-                    solve("F");
-                    return;
-                }
-            }
-
-            for (let group of bannedPremadeGroups) {
-                if (nameElement && nameElement.getAttribute("data-hovercard").indexOf(group.parse) !== -1) {
-                    solve("F");
-                    return;
-                }
-            }
             for (let parser in bannedTemplates) {
                 if (bannedTemplates.hasOwnProperty(parser)) {
                     const targets = element.querySelectorAll(parser);
@@ -118,6 +102,23 @@ const valid = (element) => {
                             }
                         }
                     }
+                }
+            }
+
+            if (name) {
+                if (groups.on.has(name)) {
+                    solve("T");
+                    return;
+                } else if (groups.off.has(name)) {
+                    solve("F");
+                    return;
+                }
+            }
+
+            for (let group of bannedPremadeGroups) {
+                if (nameElement && nameElement.getAttribute("data-hovercard").indexOf(group.parse) !== -1) {
+                    solve("F");
+                    return;
                 }
             }
         };
@@ -217,6 +218,8 @@ class Menu {
 
     getName() {}
 
+    getClass() {}
+
     getListChildren() {}
 
     addChildrenListeners() {}
@@ -226,7 +229,7 @@ class Menu {
         this.title.title = this.getDescription();
         this.list = createDOMElement("div", "list collapsed", this.getListChildren());
         this.listContainer = createDOMElement("div", "listContainer", this.list);
-        this.node = createDOMElement("div", "menu", [this.title, this.listContainer]);
+        this.node = createDOMElement("div", "menu " + this.getClass(), [this.title, this.listContainer]);
         this.addListeners();
         if (parent) {
             parent.appendChild(this.node);
@@ -246,6 +249,10 @@ class TemplatesMenu extends Menu {
         return "Templates";
     }
 
+    getClass() {
+        return "templates";
+    }
+
     getDescription() {
         return "Toggle which templates you want to filter in your newsfeed (red means it won't appear))";
     }
@@ -262,6 +269,10 @@ class TemplatesMenu extends Menu {
 class PremadeGroupsMenu extends Menu {
     getName() {
         return "Premade Groups";
+    }
+
+    getClass() {
+        return "premadeGroups";
     }
 
     getDescription() {
@@ -283,6 +294,10 @@ class GroupsMenu extends Menu {
         return "Groups";
     }
 
+    getClass() {
+        return "premadeGroups";
+    }
+
     getDescription() {
         return "Create your own private groups. A private group should contain names of pages/users. If a group is blue, those elements' posts will surely appear. If it is red, they will surely not appear. And if it is grey, then the group won't influence the newsfeed.";
     }
@@ -293,7 +308,7 @@ class GroupsMenu extends Menu {
             const group = new Group(child);
             children.push(group.node);
         }
-        this.addGroupButton = createDOMElement("span", "button add", "Add Group");
+        this.addGroupButton = createDOMElement("span", "button addGroup", "Add Group");
         children.push(this.addGroupButton);
         return children;
     }
@@ -301,10 +316,11 @@ class GroupsMenu extends Menu {
     addChildrenListeners() {
         this.addGroupButton.addEventListener("click", () => {
             let name = prompt("Create new group:");
-            if (!name || name === "") {
-                name = "Default group " + Group.getCounter();
+            if (!name || name == "") {
+                return;
             }
-            const group = new Group({name: name, value: "default", elements: []}, this.list);
+            this.list.insertBefore(new Group({name: name, value: "default", elements: []}).node,
+                                   this.addGroupButton);
         });
     }
 }
@@ -329,7 +345,8 @@ class Label {
         const newValue = values[values.indexOf(this.configRef.value) + 1];
         this.configRef.value = newValue;
         saveConfig();
-        this.node.classList.replace(oldValue, newValue);
+        this.node.classList.remove(oldValue);
+        this.node.classList.add(newValue);
     }
 
     addListeners() {
@@ -356,7 +373,7 @@ class GroupChild {
     }
 
     createNode(parent) {
-        this.deleteButton = createDOMElement("span", "button delete", "X");
+        this.deleteButton = createDOMElement("span", "button delete", "×");
         this.node = createDOMElement("label", "childLabel", [this.name, this.deleteButton]);
         this.addListeners();
         if (parent) {
@@ -428,7 +445,8 @@ class Group {
         const newValue = values[values.indexOf(this.configRef.value) + 1];
         this.configRef.value = newValue;
         saveConfig();
-        this.node.classList.replace(oldValue, newValue);
+        this.node.classList.remove(oldValue);
+        this.node.classList.add(newValue);
     }
 
     addListeners() {
@@ -441,7 +459,7 @@ class Group {
         this.renameButton.addEventListener("click", () => {
             const name = prompt("Rename group:");
             if (name) {
-                this.configRexf.name = name;
+                this.configRef.name = name;
                 saveConfig();
                 this.nameSpan.innerHTML = name;
             }
