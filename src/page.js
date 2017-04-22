@@ -1,21 +1,29 @@
 const client = new XMLHttpRequest();
 let pageHTML;
+let ACTIVE = false;
+let configSet = false;
+let checkForInsertion;
 client.open('GET', chrome.extension.getURL("page.html"));
 client.onreadystatechange = () => {
     if (client.responseText !== "") {
         pageHTML = document.createElement("div");
         pageHTML.id = "filterbook";
         pageHTML.innerHTML = client.responseText;
-        if (!document.getElementById("filterbook")) {
-            document.body.appendChild(pageHTML);
-            initMenu();
+        if (!checkForInsertion) {
+            checkForInsertion = setInterval(() => {
+                const shouldBeActive = document.getElementById("pagelet_composer");
+                if (!shouldBeActive && ACTIVE) {
+                    ACTIVE = false;
+                } else if (shouldBeActive && !ACTIVE) {
+                    setActive();
+                }
+            }, 1000);
         }
     }
 };
 client.send();
 
 const DEBUG = false;
-let ACTIVE = true;
 
 let filterStarted = false;
 
@@ -151,12 +159,22 @@ const moreButton = getMoreButton();
 
 let config;
 
-const getConfig = () => {
-    return JSON.parse(localStorage.getItem("Filterbook")) || getDefaultTemplate();
+const setConfig = () => {
+    chrome.storage.sync.get("Filterbook", (result) => {
+        if (result.Filterbook) {
+            config = result.Filterbook;
+        } else {
+            config = getDefaultTemplate();
+        }
+        initMenu();
+        saveConfig();
+        filter();
+        pageHTML = document.getElementById("filterbook");
+    });
 };
 
 const saveConfig = () => {
-    localStorage.setItem("Filterbook", JSON.stringify(config));
+    chrome.storage.sync.set({"Filterbook": config});
     bannedTemplates = {};
     for (let template of config.templates) {
         if (template.value === "off") {
@@ -182,10 +200,6 @@ const saveConfig = () => {
                 groups[group.value].add(element);
             }
         }
-    }
-    if (!filterStarted) {
-        filterStarted = true;
-        filter();
     }
 };
 
@@ -495,9 +509,6 @@ class Group {
 }
 
 const initMenu = () => {
-    config = getConfig();
-    saveConfig();
-
     const menuContainer = document.getElementById("filterbook");
 
     const templatesMenu = new TemplatesMenu(config.templates, menuContainer);
@@ -605,14 +616,14 @@ const getDefaultTemplate = () => {
     };
 };
 
-setInterval(() => {
-    const shouldBeActive = document.getElementById("pagelet_composer");
-    if (!shouldBeActive && ACTIVE) {
-        ACTIVE = false;
-        pageHTML = document.getElementById("filterbook");
-        document.body.removeChild(pageHTML);
-    } else if (shouldBeActive && !ACTIVE) {
+const setActive = () => {
+    const element = document.getElementById("universalNav");
+    if (element && element.firstChild) {
         ACTIVE = true;
-        document.body.appendChild(pageHTML);
+        element.firstChild.appendChild(pageHTML);
+        if (!configSet) {
+            configSet = true;
+            setConfig();
+        }
     }
-}, 1000);
+};
